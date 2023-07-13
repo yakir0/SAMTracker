@@ -1,11 +1,14 @@
 import time
 
 import cv2
+import numpy as np
+
 from SAM import FSAM
 from utils import Bbox
 
-save = False
+save = True
 display = True
+debug = True
 
 video_file = 'dog'
 # video_file = 'surfer'
@@ -25,7 +28,6 @@ if save:
                              cv2.VideoWriter_fourcc(*'mp4v'),
                              vid_fps, (frame_width, frame_height))
 
-
 ret, image = video_capture.read()
 image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 original_image = image.copy()
@@ -33,19 +35,18 @@ original_image = image.copy()
 bbox = cv2.selectROI("Object Selection", original_image, fromCenter=False, showCrosshair=True)
 bbox = Bbox(*bbox)
 
-if save or display:
-    cv2.rectangle(original_image, (bbox.x, bbox.y), (bbox.x2, bbox.y2), (0, 255, 0), 2)
-    if save:
-        result.write(original_image)
-
-
-
 sam.set_image(image_rgb)
 ann = sam.box(bbox)
-
 prev_bbox = Bbox.from_mask(ann)
-# print(ann)
-# print(ann.shape)
+
+if save or display:
+    if debug:
+        masked_img = np.where(ann[..., None], [0, 0, 255], original_image)
+        original_image = cv2.addWeighted(original_image, 0.8, masked_img, 0.2, 0, dtype=0)
+        cv2.rectangle(original_image, (prev_bbox.x, prev_bbox.y), (prev_bbox.x2, prev_bbox.y2), (255, 0, 0), 2)
+    cv2.rectangle(original_image, (bbox.x, bbox.y), (bbox.x2, bbox.y2), (0, 255, 0), 2)
+if save:
+    result.write(original_image)
 
 # if display:
 #     cv2.rectangle(original_image, (res_bbox.x, res_bbox.y), (res_bbox.x2, res_bbox.y2), (255, 0, 0), 2)
@@ -65,18 +66,26 @@ while True:
     # detect
     sam.set_image(image_rgb)
     ann = sam.box(prev_bbox)
-    prev_bbox = Bbox.from_mask(ann)
+    ann_bbox = Bbox.from_mask(ann)
 
     frame_count += 1
     if display or save:
-        cv2.rectangle(original_image, (prev_bbox.x, prev_bbox.y), (prev_bbox.x2, prev_bbox.y2), (255, 0, 0), 2)
+        if debug:
+            masked_img = np.where(ann[..., None], [0, 0, 255], original_image)
+            original_image = cv2.addWeighted(original_image, 0.8, masked_img, 0.2, 0, dtype=0)
+            cv2.rectangle(original_image, (prev_bbox.x, prev_bbox.y), (prev_bbox.x2, prev_bbox.y2), (255, 0, 0), 2)
+        cv2.rectangle(original_image, (ann_bbox.x, ann_bbox.y), (ann_bbox.x2, ann_bbox.y2), (0, 255, 0), 2)
+    prev_bbox = ann_bbox
     if save:
         result.write(original_image)
     if display:
         cv2.imshow('Object Detection', original_image)
         # Press Q on keyboard to exit
-        if cv2.waitKey(25) & 0xFF == ord('q'):
+        key = cv2.waitKey(25)
+        if key & 0xFF == ord('q'):
             break
+        if key & 0xFF == ord('p'):
+            cv2.waitKey(-1)
 t2 = time.time()
 print(f'FPS: {frame_count / (t2 - t1)}')
 
@@ -86,4 +95,3 @@ if save:
     result.release()
 # Closes all the frames
 cv2.destroyAllWindows()
-
