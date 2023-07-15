@@ -6,15 +6,18 @@ import numpy as np
 from SAM import FSAM
 from utils import Bbox
 
-save = True
+save = False
 display = True
 debug = True
+
+MAX_AGE = 10
+IOU_THRESH = 0.5
 
 video_file = 'dog'
 # video_file = 'surfer'
 # video_file = 'traffic2'
 
-sam = FSAM()
+sam = FSAM(small=False)
 
 # Initialize the video capture
 video_capture = cv2.VideoCapture(f'videos/{video_file}.mp4')
@@ -55,6 +58,7 @@ if save:
 
 t1 = time.time()
 frame_count = 0
+dead_frames = 0
 while True:
     ret, image = video_capture.read()
     if not ret:
@@ -63,26 +67,32 @@ while True:
         original_image = image.copy()  # Create a copy for visualization
     image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-    # detect
-    sam.set_image(image_rgb)
-    ann = sam.box(prev_bbox)
-    ann_bbox = Bbox.from_mask(ann)
+    if dead_frames <= MAX_AGE:
+        # detect
+        sam.set_image(image_rgb)
+        ann = sam.box(prev_bbox)
+        ann_bbox = Bbox.from_mask(ann)
+
+        if prev_bbox.iou(ann_bbox) > IOU_THRESH:
+            if display or save:
+                if debug:
+                    masked_img = np.where(ann[..., None], [0, 0, 255], original_image)
+                    original_image = cv2.addWeighted(original_image, 0.8, masked_img, 0.2, 0, dtype=0)
+                    cv2.rectangle(original_image, (prev_bbox.x, prev_bbox.y), (prev_bbox.x2, prev_bbox.y2), (255, 0, 0), 2)
+                cv2.rectangle(original_image, (ann_bbox.x, ann_bbox.y), (ann_bbox.x2, ann_bbox.y2), (0, 255, 0), 2)
+            prev_bbox = ann_bbox
+            dead_frames = 0
+        else:
+            dead_frames += 1
 
     frame_count += 1
-    if display or save:
-        if debug:
-            masked_img = np.where(ann[..., None], [0, 0, 255], original_image)
-            original_image = cv2.addWeighted(original_image, 0.8, masked_img, 0.2, 0, dtype=0)
-            cv2.rectangle(original_image, (prev_bbox.x, prev_bbox.y), (prev_bbox.x2, prev_bbox.y2), (255, 0, 0), 2)
-        cv2.rectangle(original_image, (ann_bbox.x, ann_bbox.y), (ann_bbox.x2, ann_bbox.y2), (0, 255, 0), 2)
-    prev_bbox = ann_bbox
     if save:
         result.write(original_image)
     if display:
         cv2.imshow('Object Detection', original_image)
         # Press Q on keyboard to exit
-        key = cv2.waitKey(0)
-        # key = cv2.waitKey(0 if debug else 25)
+        # key = cv2.waitKey(0)
+        key = cv2.waitKey(1)
         if key & 0xFF == ord('q'):
             break
         if key & 0xFF == ord('p'):
