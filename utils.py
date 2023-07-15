@@ -37,6 +37,18 @@ class Bbox:
     def y2(self):
         return self.y + self.h
 
+    def iou(self, other):
+        x_left = max(self.x, other.x)
+        y_top = max(self.y, other.y)
+        x_right = min(self.x2, other.x2)
+        y_bottom = min(self.y2, other.y2)
+        if x_right < x_left or y_bottom < y_top:
+            return 0.0
+        intersection_area = (x_right - x_left) * (y_bottom - y_top)
+        bb1_area = self.w * self.h
+        bb2_area = other.w * other.h
+        iou = intersection_area / float(bb1_area + bb2_area - intersection_area)
+        assert iou >= 0.0
+        assert iou <= 1.0
+        return iou
 
-def seg_to_bbox(seg):
-    pass

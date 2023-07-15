@@ -81,11 +81,14 @@ while True:
     if display:
         cv2.imshow('Object Detection', original_image)
         # Press Q on keyboard to exit
-        key = cv2.waitKey(25)
+        key = cv2.waitKey(0)
+        # key = cv2.waitKey(0 if debug else 25)
         if key & 0xFF == ord('q'):
             break
         if key & 0xFF == ord('p'):
-            cv2.waitKey(-1)
+            tmp = sam.everything()
+            sam.prompt_process.plot(annotations=tmp,output='./output/tmp.jpg',)
+            cv2.waitKey(0)
 t2 = time.time()
 print(f'FPS: {frame_count / (t2 - t1)}')
 

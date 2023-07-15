@@ -3,6 +3,7 @@ import torch
 from utils import Bbox
 from FastSAM import FastSAM, FastSAMPrompt
 
+
 class SAM:
     def __init__(self, name, device=None):
         self.name = name
@@ -20,6 +21,11 @@ class SAM:
     def box(self, bbox):
         pass
 
+    def point(self, point):
+        pass
+
+    def everything(self):
+        pass
 
 
 class FSAM(SAM):
@@ -48,3 +54,8 @@ class FSAM(SAM):
     def box(self, bbox: Bbox):
         return self.prompt_process.box_prompt(bbox=bbox.get_xyxy())[0]
 
+    def point(self, point):
+        return self.prompt_process.point_prompt(points=[point], pointlabel=[1])
+
+    def everything(self):
+        return self.prompt_process.everything_prompt()
