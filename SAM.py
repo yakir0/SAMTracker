@@ -1,30 +1,38 @@
 import cv2
+import numpy as np
 import torch
 from utils import Bbox
 from FastSAM import FastSAM, FastSAMPrompt
+from segment_anything import SamPredictor, sam_model_registry, SamAutomaticMaskGenerator
 
 
 class SAM:
     def __init__(self, name, device=None):
         self.name = name
         self.device = device or torch.device(
-            "cuda"
-            if torch.cuda.is_available()
-            else "mps"
-            if torch.backends.mps.is_available()
-            else "cpu"
+            "cuda" if torch.cuda.is_available() else "cpu"
         )
 
     def set_image(self, image):
+        """
+
+        Args:
+            image: ndarray, RGB
+
+        Returns: None
+
+        """
         pass
 
     def box(self, bbox):
-        pass
+        """
 
-    def point(self, point):
-        pass
+        Args:
+            bbox: Bbox
 
-    def everything(self):
+        Returns: ndarray of the size of the image with True/False values
+
+        """
         pass
 
 
@@ -52,10 +60,30 @@ class FSAM(SAM):
         )
 
     def box(self, bbox: Bbox):
-        return self.prompt_process.box_prompt(bbox=bbox.get_xyxy())[0]
+        return self.prompt_process.box_prompt(bbox=bbox.get_xyxy())[0].astype(bool)
 
-    def point(self, point):
-        return self.prompt_process.point_prompt(points=[point], pointlabel=[1])
 
-    def everything(self):
-        return self.prompt_process.everything_prompt()
+class FacebookSAM(SAM):
+    def __init__(self, model="default", device=None):
+        models = {
+            "vit_h": "sam_vit_h_4b8939.pth",
+            "vit_l": "sam_vit_l_0b3195.pth",
+            "vit_b": "sam_vit_b_01ec64.pth"
+        }
+        models['default'] = models['vit_h']
+        super().__init__(f'sam-{model}', device)
+        sam = sam_model_registry[model](checkpoint=f"models/{models[model]}")
+        sam.to(self.device)
+        self.predictor = SamPredictor(sam)
+
+    def set_image(self, image):
+        self.predictor.set_image(image)
+
+    def box(self, bbox):
+        masks, scores, logits = self.predictor.predict(
+            point_coords=None,
+            point_labels=None,
+            box=np.array(bbox.get_xyxy())[None, :],
+            multimask_output=True,
+        )
+        return masks[np.argmax(scores)]

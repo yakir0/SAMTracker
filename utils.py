@@ -1,4 +1,6 @@
+import cv2
 import numpy as np
+
 
 class Bbox:
     def __init__(self, x, y, w, h):
@@ -52,3 +54,11 @@ class Bbox:
         assert iou <= 1.0
         return iou
 
+
+def draw_rect(image, bbox: Bbox, color, thickness=2):
+    return cv2.rectangle(image, (bbox.x, bbox.y), (bbox.x2, bbox.y2), color, thickness)
+
+
+def draw_mask(image, mask, color, alpha=0.2):
+    masked_img = np.where(mask[..., None], color, image)
+    return cv2.addWeighted(image, 1 - alpha, masked_img, alpha, 0, dtype=0)

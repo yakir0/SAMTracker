@@ -3,21 +3,26 @@ import time
 import cv2
 import numpy as np
 
-from SAM import FSAM
+from SAM import FSAM, FacebookSAM
 from utils import Bbox
 
-save = False
+save = True
 display = True
-debug = True
+debug = False
+save = display = False
+benchmark = not save and not display and not debug
 
-MAX_AGE = 10
-IOU_THRESH = 0.5
+MAX_AGE = 20
+IOU_THRESH = 0.4
 
 video_file = 'dog'
 # video_file = 'surfer'
+# video_file = 'traffic'
 # video_file = 'traffic2'
 
-sam = FSAM(small=False)
+device = 'cpu'
+# sam = FSAM(small=False, device=device)
+sam = FacebookSAM(model="vit_h", device=device)
 
 # Initialize the video capture
 video_capture = cv2.VideoCapture(f'videos/{video_file}.mp4')
@@ -35,8 +40,10 @@ ret, image = video_capture.read()
 image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 original_image = image.copy()
 
-bbox = cv2.selectROI("Object Selection", original_image, fromCenter=False, showCrosshair=True)
-bbox = Bbox(*bbox)
+# bbox = cv2.selectROI("Object Selection", original_image, fromCenter=False, showCrosshair=True)
+# bbox = Bbox(*bbox)
+bbox = Bbox(640, 380, 815, 550)  # dog
+# bbox = Bbox(465, 282, 229, 200)  # surfer
 
 sam.set_image(image_rgb)
 ann = sam.box(bbox)
@@ -69,11 +76,13 @@ while True:
 
     if dead_frames <= MAX_AGE:
         # detect
+        sit = time.time()
         sam.set_image(image_rgb)
+        print(f'took: {time.time() - sit} sec')
         ann = sam.box(prev_bbox)
         ann_bbox = Bbox.from_mask(ann)
 
-        if prev_bbox.iou(ann_bbox) > IOU_THRESH:
+        if ann_bbox and prev_bbox.iou(ann_bbox) > IOU_THRESH:
             if display or save:
                 if debug:
                     masked_img = np.where(ann[..., None], [0, 0, 255], original_image)
@@ -84,6 +93,8 @@ while True:
             dead_frames = 0
         else:
             dead_frames += 1
+    elif benchmark:
+        break
 
     frame_count += 1
     if save:
@@ -100,7 +111,9 @@ while True:
             sam.prompt_process.plot(annotations=tmp,output='./output/tmp.jpg',)
             cv2.waitKey(0)
 t2 = time.time()
-print(f'FPS: {frame_count / (t2 - t1)}')
+fps = frame_count / (t2 - t1)
+print(f'FPS: {fps}')
+print(f'SFP: {1/fps}')
 
 # When everything done, release the video capture object
 video_capture.release()
