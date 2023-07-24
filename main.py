@@ -41,10 +41,10 @@ ret, image = video_capture.read()
 image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 original_image = image.copy()
 
-bboxes = cv2.selectROIs("Object Selection", original_image, fromCenter=False, showCrosshair=True)
-bboxes = [Bbox(*bbox) for bbox in bboxes]
-# bbox = Bbox(640, 380, 815, 550)  # dog
-# bbox = Bbox(465, 282, 229, 200)  # surfer
+#bboxes = cv2.selectROIs("Object Selection", original_image, fromCenter=False, showCrosshair=True)
+#bboxes = [Bbox(*bbox) for bbox in bboxes]
+# bboxes = [Bbox(640, 380, 815, 550)]  # dog
+bboxes = [Bbox(465, 282, 229, 200)]  # surfer
 
 sam.set_image(image_rgb)
 prev_bboxes = []
