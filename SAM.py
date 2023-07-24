@@ -4,6 +4,10 @@ import torch
 from utils import Bbox
 from FastSAM import FastSAM, FastSAMPrompt
 from segment_anything import SamPredictor, sam_model_registry, SamAutomaticMaskGenerator
+from mobile_sam import (
+    SamPredictor as mb_SamPredictor,
+    sam_model_registry as mb_sam_model_registry
+)
 
 
 class SAM:
@@ -75,6 +79,26 @@ class FacebookSAM(SAM):
         sam = sam_model_registry[model](checkpoint=f"models/{models[model]}")
         sam.to(self.device)
         self.predictor = SamPredictor(sam)
+
+    def set_image(self, image):
+        self.predictor.set_image(image)
+
+    def box(self, bbox):
+        masks, scores, logits = self.predictor.predict(
+            point_coords=None,
+            point_labels=None,
+            box=np.array(bbox.get_xyxy())[None, :],
+            multimask_output=True,
+        )
+        return masks[np.argmax(scores)]
+
+
+class MobileSAM(SAM):
+    def __init__(self, device=None):
+        super().__init__(f'mobile-sam', device)
+        sam = mb_sam_model_registry['vit_t'](checkpoint=f"models/mobile_sam.pt")
+        sam.to(self.device)
+        self.predictor = mb_SamPredictor(sam)
 
     def set_image(self, image):
         self.predictor.set_image(image)

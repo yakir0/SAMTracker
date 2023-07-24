@@ -3,12 +3,12 @@ import time
 import cv2
 import numpy as np
 
-from SAM import FSAM, FacebookSAM
+from SAM import FSAM, FacebookSAM, MobileSAM
 from utils import Bbox, draw_rect, draw_mask
 
 save = False
 display = True
-debug = False
+debug = True
 # save = display = False
 benchmark = not save and not display and not debug
 
@@ -16,13 +16,14 @@ MAX_AGE = 20
 IOU_THRESH = 0.4
 
 # video_file = 'dog'
-# video_file = 'surfer'
-video_file = 'traffic'
+video_file = 'surfer'
+# video_file = 'traffic'
 # video_file = 'traffic2'
 
 device = 'cpu'
-sam = FSAM(small=True, device=device)
+# sam = FSAM(small=True, device=device)
 # sam = FacebookSAM(model="vit_l", device=device)
+sam = MobileSAM()
 
 # Initialize the video capture
 video_capture = cv2.VideoCapture(f'videos/{video_file}.mp4')
