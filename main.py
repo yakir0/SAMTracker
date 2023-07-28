@@ -71,7 +71,7 @@ def track(sam, video_file, *, bboxes=None, save=False, display=True, debug=True)
                     prev_bboxes[i][1] = 0
                     if display or save:
                         if debug:
-                            original_image = draw_mask(original_image, ann, (0, 0, 255))
+                            original_image = draw_mask(original_image, ann, (255, 255, 0))
                             original_image = draw_rect(original_image, prev_bbox, (255, 0, 0))
                         original_image = draw_rect(original_image, ann_bbox, (0, 255, 0))
                 else:
@@ -104,7 +104,7 @@ def output_results(sams, files, bboxes):
     for sam_cls, sam_args in sams:
         sam = sam_cls(**sam_args)
         for video_file in files:
-            track(sam, video_file, bboxes=bboxes[video_file], save=False, debug=False)
+            track(sam, video_file, bboxes=bboxes[video_file], save=False, debug=True)
 
 
 def get_bboxes(files, save_new=False):
@@ -128,11 +128,15 @@ def main():
     display = True
     debug = True
 
-    # video_file = 'dog'
-    # video_file = 'surfer'
-    # video_file = 'traffic'
-    # video_file = 'traffic2'
-    video_files = ['dog', 'surfer', 'traffic', 'traffic2']
+    video_files = [
+        # 'dog',
+        # 'surfer',
+        # 'traffic',
+        # 'traffic2',
+        # 'lions',
+        # 'peppers',
+        'bikes',
+    ]
 
     sams = [
         # (FSAM, {'small': True}),
