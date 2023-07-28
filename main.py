@@ -57,25 +57,26 @@ def track(sam, video_file, *, bboxes=None, save=False, display=True, debug=True)
             original_image = image.copy()  # Create a copy for visualization
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         # detect
-        sit = time.time()
-        sam.set_image(image_rgb)
-        print(f'took: {time.time() - sit} sec')
+        if any(dead_frames <= MAX_AGE for _, dead_frames in prev_bboxes):
+            sit = time.time()
+            sam.set_image(image_rgb)
+            print(f'took: {time.time() - sit} sec')
 
-        for i, (prev_bbox, dead_frames) in enumerate(prev_bboxes):
-            if dead_frames <= MAX_AGE:
-                ann = sam.box(prev_bbox)
-                ann_bbox = Bbox.from_mask(ann)
+            for i, (prev_bbox, dead_frames) in enumerate(prev_bboxes):
+                if dead_frames <= MAX_AGE:
+                    ann = sam.box(prev_bbox)
+                    ann_bbox = Bbox.from_mask(ann)
 
-                if ann_bbox and prev_bbox.iou(ann_bbox) > IOU_THRESH:
-                    prev_bboxes[i][0] = ann_bbox
-                    prev_bboxes[i][1] = 0
-                    if display or save:
-                        if debug:
-                            original_image = draw_mask(original_image, ann, (255, 255, 0))
-                            original_image = draw_rect(original_image, prev_bbox, (255, 0, 0))
-                        original_image = draw_rect(original_image, ann_bbox, (0, 255, 0))
-                else:
-                    prev_bboxes[i][1] += 1
+                    if ann_bbox and prev_bbox.iou(ann_bbox) > IOU_THRESH:
+                        prev_bboxes[i][0] = ann_bbox
+                        prev_bboxes[i][1] = 0
+                        if display or save:
+                            if debug:
+                                original_image = draw_mask(original_image, ann, (255, 255, 0))
+                                original_image = draw_rect(original_image, prev_bbox, (255, 0, 0))
+                            original_image = draw_rect(original_image, ann_bbox, (0, 255, 0))
+                    else:
+                        prev_bboxes[i][1] += 1
 
         frame_count += 1
         if save:
@@ -104,7 +105,7 @@ def output_results(sams, files, bboxes):
     for sam_cls, sam_args in sams:
         sam = sam_cls(**sam_args)
         for video_file in files:
-            track(sam, video_file, bboxes=bboxes[video_file], save=False, debug=True)
+            track(sam, video_file, bboxes=bboxes[video_file], save=True, debug=False)
 
 
 def get_bboxes(files, save_new=False):
@@ -131,19 +132,19 @@ def main():
     video_files = [
         # 'dog',
         # 'surfer',
-        # 'traffic',
-        # 'traffic2',
-        # 'lions',
-        # 'peppers',
+        'traffic',
+        'traffic2',
+        'lions',
+        'peppers',
         'bikes',
     ]
 
     sams = [
         # (FSAM, {'small': True}),
         # (FSAM, {'small': False}),
-        # (FacebookSAM, {'model': 'vit_b'}),
-        # (FacebookSAM, {'model': 'vit_l'}),
-        # (FacebookSAM, {'model': 'vit_h'}),
+        (FacebookSAM, {'model': 'vit_b'}),
+        (FacebookSAM, {'model': 'vit_l'}),
+        (FacebookSAM, {'model': 'vit_h'}),
         (MobileSAM, {}),
     ]
     # device = 'cpu'

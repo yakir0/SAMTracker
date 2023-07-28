@@ -53,8 +53,8 @@ class FSAM(SAM):
             device=self.device,
             retina_masks=True,
             imgsz=1024,
-            conf=0.4,
-            iou=0.9,
+            conf=0.35,
+            iou=0.80,
         )
 
         self.prompt_process = FastSAMPrompt(
