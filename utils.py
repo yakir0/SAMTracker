@@ -39,6 +39,10 @@ class Bbox:
     def y2(self):
         return self.y + self.h
 
+    @property
+    def area(self):
+        return self.w * self.h
+
     def iou(self, other):
         x_left = max(self.x, other.x)
         y_top = max(self.y, other.y)

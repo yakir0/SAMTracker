@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import torch
 from utils import Bbox
-from FastSAM import FastSAM, FastSAMPrompt
+from fastsam import FastSAM, FastSAMPrompt
 from segment_anything import SamPredictor, sam_model_registry, SamAutomaticMaskGenerator
 from mobile_sam import (
     SamPredictor as mb_SamPredictor,
@@ -34,18 +34,21 @@ class SAM:
         Args:
             bbox: Bbox
 
-        Returns: ndarray of the size of the image with True/False values
+        Returns: tuple of
+            - mask represented by ndarray of the size of the image with True/False values
+            - score
 
         """
         pass
 
 
 class FSAM(SAM):
-    def __init__(self, small=True, device=None):
+    def __init__(self, small=True, conf=0.35, device=None):
         model_name = f"FastSAM-{'s' if small else 'x'}"
         super().__init__(model_name, device)
         self.model = FastSAM(f'models/{model_name}.pt')
         self.prompt_process = None
+        self.conf = conf
 
     def set_image(self, image):
         everything_results = self.model(
@@ -53,10 +56,9 @@ class FSAM(SAM):
             device=self.device,
             retina_masks=True,
             imgsz=1024,
-            conf=0.35,
+            conf=self.conf,
             iou=0.80,
         )
-
         self.prompt_process = FastSAMPrompt(
             cv2.cvtColor(image, cv2.COLOR_RGB2BGR),
             everything_results,
@@ -64,7 +66,7 @@ class FSAM(SAM):
         )
 
     def box(self, bbox: Bbox):
-        return self.prompt_process.box_prompt(bbox=bbox.get_xyxy())[0].astype(bool)
+        return self.prompt_process.box_prompt(bbox=bbox.get_xyxy())[0].astype(bool), self.conf
 
 
 class FacebookSAM(SAM):
@@ -90,7 +92,8 @@ class FacebookSAM(SAM):
             box=np.array(bbox.get_xyxy())[None, :],
             multimask_output=True,
         )
-        return masks[np.argmax(scores)]
+        max_score_idx = np.argmax(scores)
+        return masks[max_score_idx], scores[max_score_idx]
 
 
 class MobileSAM(SAM):
@@ -110,4 +113,5 @@ class MobileSAM(SAM):
             box=np.array(bbox.get_xyxy())[None, :],
             multimask_output=True,
         )
-        return masks[np.argmax(scores)]
+        max_score_idx = np.argmax(scores)
+        return masks[max_score_idx], scores[max_score_idx]
