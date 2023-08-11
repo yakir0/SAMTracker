@@ -63,10 +63,10 @@ def track(sam, video_file, *, bboxes=None, save=False, display=True, debug=True)
                     ann, score = sam.box(prev_bbox)
                     ann_bbox = Bbox.from_mask(ann)
 
-                    iou = prev_bbox.iou(ann_bbox)
                     df_ratio = (MAX_AGE - dead_frames)/MAX_AGE
 
-                    if ann_bbox and ann_bbox.area > MIN_AREA and sum((iou, score, df_ratio))/3 > THRESH:
+                    if ann_bbox and ann_bbox.area > MIN_AREA and \
+                            sum((prev_bbox.iou(ann_bbox), score, df_ratio))/3 > THRESH:
                         prev_bboxes[i][0] = ann_bbox
                         prev_bboxes[i][1] = 0
                         if display or save:
@@ -174,12 +174,12 @@ def main():
 
     video_files = [
         'dog',
-        # 'surfer',
-        # 'traffic',
-        # 'traffic2',
-        # 'lions',
-        # 'peppers',
-        # 'bikes',
+        'surfer',
+        'traffic',
+        'traffic2',
+        'lions',
+        'peppers',
+        'bikes',
     ]
 
     sams = [
@@ -188,16 +188,14 @@ def main():
         # (FacebookSAM, {'model': 'vit_b'}),
         # (FacebookSAM, {'model': 'vit_l'}),
         # (FacebookSAM, {'model': 'vit_h'}),
-        # (MobileSAM, {}),
+        (MobileSAM, {}),
     ]
-    device = 'cpu'
-    sam = FSAM(small=True, device=device)
     # sam = FacebookSAM(model="vit_l", device=device)
     # sam = MobileSAM()
 
     bbs = get_bboxes(video_files, True)
-    # output_results(sams, video_files, bbs)
-    track(sam, video_files[0], bboxes=bbs[video_files[0]], save=False, debug=True, display=True)
+    output_results(sams, video_files, bbs)
+    # track(sam, video_files[0], bboxes=bbs[video_files[0]], save=False, debug=True, display=True)
 
 
 if __name__ == '__main__':
